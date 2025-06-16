@@ -1,0 +1,6 @@
+.env
+node_modules
+text/
+.idea/
+package.json
+package-lock.json
