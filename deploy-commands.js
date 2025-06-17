@@ -1,57 +1,64 @@
 // deploy-commands.js
 
-// Importa os módulos necessários
-const { REST, Routes } = require('discord.js');
 const fs = require('node:fs');
 const path = require('node:path');
-require('dotenv').config(); // Carrega as variáveis de ambiente
+const { REST } = require('@discordjs/rest');
+const { Routes } = require('discord.js');
 
-// Pega as credenciais do arquivo .env
-const token = process.env.DISCORD_TOKEN;
+
 const clientId = process.env.CLIENT_ID;
+const guildId = process.env.GUILD_ID;
+const token = process.env.DISCORD_TOKEN;
+// ✅ Envolvemos toda a lógica em uma função async
+async function deployCommands() {
+    const commands = [];
+    const commandsPath = path.join(__dirname, 'commands');
 
-// Array para guardar os dados dos comandos
-const commands = [];
+    if (!fs.existsSync(commandsPath)) {
+        console.error("Diretório de comandos não encontrado em:", commandsPath);
+        // ✅ Agora o 'return' está dentro de uma função e é válido
+        return;
+    }
 
-// Encontra todos os arquivos de comando na pasta 'commands'
-const commandsPath = path.join(__dirname, 'commands');
-const commandFolders = fs.readdirSync(commandsPath);
+    const commandFolders = fs.readdirSync(commandsPath).filter(folder =>
+        fs.statSync(path.join(commandsPath, folder)).isDirectory()
+    );
 
-// Loop pelas pastas de categorias de comandos
-for (const folder of commandFolders) {
-    const folderPath = path.join(commandsPath, folder);
-    const commandFiles = fs.readdirSync(folderPath).filter(file => file.endsWith('.js'));
-
-    // Loop pelos arquivos de comando
-    for (const file of commandFiles) {
-        const filePath = path.join(folderPath, file);
-        const command = require(filePath);
-
-        // Verifica se o comando é um Slash Command (tem a propriedade 'data')
-        if ('data' in command && 'execute' in command) {
-            commands.push(command.data.toJSON());
+    for (const folder of commandFolders) {
+        const folderPath = path.join(commandsPath, folder);
+        const commandFiles = fs.readdirSync(folderPath).filter(file => file.endsWith('.js'));
+        for (const file of commandFiles) {
+            const filePath = path.join(folderPath, file);
+            const command = require(filePath);
+            if ('data' in command && 'execute' in command) {
+                commands.push(command.data.toJSON());
+            } else {
+                console.log(`[AVISO] O comando em ${filePath} está faltando uma propriedade "data" ou "execute".`);
+            }
         }
     }
-}
 
-// Cria uma instância do REST para fazer a requisição à API do Discord
-const rest = new REST().setToken(token);
+    const rest = new REST({ version: '10' }).setToken(token);
 
-// Função assíncrona auto-executável para implantar os comandos
-(async () => {
     try {
-        console.log(`Iniciando a atualização de ${commands.length} comandos de barra (/).`);
+        console.log(`Iniciado o recarregamento de ${commands.length} comandos de aplicação (/).`);
 
-        // O método 'put' atualiza TODOS os comandos globais com a lista atual
-        // Isso remove comandos antigos e adiciona os novos de uma só vez
         const data = await rest.put(
-            Routes.applicationCommands(clientId),
+            Routes.applicationGuildCommands(clientId, guildId),
             { body: commands },
         );
 
-        console.log(`✅ Sucesso! ${data.length} comandos de barra (/) foram recarregados.`);
+        console.log(`Recarregado com sucesso ${data.length} comandos de aplicação (/).`);
+        return data; // Retornar os dados pode ser útil para o teste
     } catch (error) {
-        // Pega e exibe qualquer erro que ocorra no processo
         console.error(error);
     }
-})();
+}
+
+// ✅ Exporta a função para que possa ser usada em outros arquivos (como o teste)
+module.exports = { deployCommands };
+
+// Este bloco permite que o script ainda seja executável diretamente com "node deploy-commands.js"
+if (require.main === module) {
+    deployCommands();
+}
