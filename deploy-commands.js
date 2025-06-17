@@ -12,6 +12,7 @@ const token = process.env.DISCORD_TOKEN;
 // ✅ Envolvemos toda a lógica em uma função async
 async function deployCommands() {
     const commands = [];
+    const seenCommands = new Set();
     const commandsPath = path.join(__dirname, 'commands');
 
     if (!fs.existsSync(commandsPath)) {
@@ -31,7 +32,13 @@ async function deployCommands() {
             const filePath = path.join(folderPath, file);
             const command = require(filePath);
             if ('data' in command && 'execute' in command) {
-                commands.push(command.data.toJSON());
+                const commandName = command.data.name;
+                if (seenCommands.has(commandName)) {
+                    console.log(`[AVISO] Comando duplicado encontrado e ignorado: "${commandName}" em ${filePath}`);
+                } else {
+                    seenCommands.add(commandName)
+                    commands.push(command.data.toJSON());
+                }
             } else {
                 console.log(`[AVISO] O comando em ${filePath} está faltando uma propriedade "data" ou "execute".`);
             }
