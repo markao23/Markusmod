@@ -30,8 +30,11 @@ for (const folder of slashCommandFolders) {
     for (const file of commandFiles) {
         const filePath = path.join(folderPath, file);
         const command = require(filePath);
-        if ('data' in command && 'execute' in command) {
+        if ('name' in command && 'execute' in command) {
             client.commands.set(command.data.name, command);
+            console.log(`[INFO] Comando de prefixo carregado: !${command.name}`);
+        } else {
+            console.log(`[AVISO] O comando em ${filePath} está com 'name' ou 'execute' faltando.`);
         }
     }
 }
