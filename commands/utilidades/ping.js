@@ -1,29 +1,14 @@
-// commands/utilidade/ping.js
-
 const { SlashCommandBuilder } = require('discord.js');
 
 module.exports = {
     data: new SlashCommandBuilder()
-        .setName('ping')
-        .setDescription('Responde com a latência do bot!'),
-
+        .setName('ping') // <<< O nome do comando de barra
+        .setDescription('Verifica a latência do bot.'), // <<< A descrição que aparece no Discord
     async execute(interaction) {
-        // =======================================================
-        // ==== CORREÇÃO APLICADA AQUI ====
-        // =======================================================
+        const sent = await interaction.reply({ content: 'Pinging...', ephemeral: true, fetchReply: true }); // ephemeral: true para não poluir o chat durante o "pinging"
+        const botPing = Math.round(interaction.client.ws.ping);
+        const roundtripLatency = sent.createdTimestamp - interaction.createdTimestamp;
 
-        // 1. Respondemos à interação. A opção 'fetchReply' foi removida.
-        await interaction.reply('Pingando...');
-
-        // 2. Usamos o novo método 'interaction.fetchReply()' para buscar a mensagem que acabamos de enviar.
-        const sent = await interaction.fetchReply();
-
-        // =======================================================
-
-        // O resto do código continua igual, pois agora 'sent' contém a mensagem de resposta.
-        const botLatency = sent.createdTimestamp - interaction.createdTimestamp;
-        const apiLatency = Math.round(interaction.client.ws.ping);
-
-        await interaction.editReply(`🏓 Pong!\nLatência do Bot: **${botLatency}ms**\nLatência da API: **${apiLatency}ms**`);
+        await interaction.editReply(`Pong! Latência da API: ${botPing}ms. Latência de ida e volta: ${roundtripLatency}ms`);
     },
 };
