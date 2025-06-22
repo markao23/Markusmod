@@ -1,7 +1,7 @@
 // Carrega as variáveis de ambiente do arquivo .env
 require('dotenv').config();
 
-const Bot = require('./src/Bot');
+const Bot = require('./Bot');
 
 // Instancia e inicia o bot
 const bot = new Bot();
