@@ -1,65 +1,67 @@
-// /home/markus/WebstormProjects/untitled6/commands/prefixo/help.js
-
 const { EmbedBuilder } = require('discord.js');
+const BaseCommand = require('../../strutures/BaseCommand');
 
-module.exports = {
-    name: 'help',
-    description: 'Mostra uma lista de todos os comandos disponíveis.',
-    aliases: ['ajuda', 'comandos'], // Opcional: aliases para o comando
-    async execute(message, args, client) { // Certifique-se de que 'client' é passado aqui
-        const prefix = 'm!'; // Certifique-se que o prefixo aqui é o mesmo do seu index.js
+class HelpCommand extends BaseCommand {
+    constructor() {
+        super('help', {
+            category: 'Utilidades',
+            aliases: ['ajuda', 'comandos'],
+            description: 'Mostra a lista de comandos ou informações sobre um comando específico.',
+            usage: 'help [nome do comando]'
+        });
+    }
+
+    async execute(bot, message, args) {
+        const prefix = bot.prefix;
+
+        // Se não houver argumentos, mostra a lista geral de comandos
+        if (!args.length) {
+            const embed = new EmbedBuilder()
+                .setColor('#0099ff')
+                .setTitle('📜 Meus Comandos')
+                .setDescription(`Use \`${prefix}help [nome do comando]\` para ver detalhes de um comando específico.`);
+
+            const categories = {};
+            // Agrupa os comandos por categoria
+            bot.commands.forEach(command => {
+                if (!categories[command.category]) {
+                    categories[command.category] = [];
+                }
+                categories[command.category].push(`\`${command.name}\``);
+            });
+
+            // Adiciona um campo para cada categoria no embed
+            for (const categoryName in categories) {
+                embed.addFields({
+                    name: `**${categoryName}**`,
+                    value: categories[categoryName].join(', '),
+                    inline: false
+                });
+            }
+
+            return message.reply({ embeds: [embed] });
+        }
+
+        // Se houver um argumento, mostra os detalhes do comando específico
+        const commandName = args[0].toLowerCase();
+        const command = bot.commands.get(commandName) || bot.commands.get(bot.aliases.get(commandName));
+
+        if (!command) {
+            return message.reply('Esse comando não existe!');
+        }
 
         const embed = new EmbedBuilder()
-            .setColor(0x0099FF) // Um azul bonito
-            .setTitle('Guia de Comandos do Bot')
-            .setDescription(`Olá! Aqui estão todos os comandos que você pode usar.\nMeu prefixo é: \`${prefix}\``)
-            .setThumbnail(client.user.displayAvatarURL()); // Ícone do seu bot
+            .setColor('#0099ff')
+            .setTitle(`🔍 Detalhes do Comando: \`${command.name}\``)
+            .addFields(
+                { name: 'Descrição', value: command.description || 'Nenhuma descrição.' },
+                { name: 'Categoria', value: command.category },
+                { name: 'Como usar', value: `\`${prefix}${command.usage || command.name}\`` },
+                { name: 'Apelidos (Aliases)', value: command.aliases.length ? command.aliases.join(', ') : 'Nenhum.' }
+            );
 
-        // --- Comandos de Prefixo ---
-        let prefixCommandsString = '';
-        if (client.commands.size > 0) {
-            const filteredPrefixCommands = client.commands.filter(cmd => !cmd.aliases || !cmd.aliases.includes('help'));
-            prefixCommandsString = filteredPrefixCommands.map(cmd => {
-                if (cmd.name === 'help') return ''; // Evita listar 'help' duas vezes se tiver alias
+        return message.reply({ embeds: [embed] });
+    }
+}
 
-                let cmdName = `\`${prefix}${cmd.name}\``;
-                if (cmd.aliases && cmd.aliases.length > 0) {
-                    cmdName += ` (Aliases: ${cmd.aliases.map(a => `\`${prefix}${a}\``).join(', ')})`;
-                }
-                return `${cmdName}: ${cmd.description || 'Sem descrição.'}`;
-            }).filter(Boolean).join('\n'); // .filter(Boolean) remove entradas vazias
-
-            if (prefixCommandsString === '') { // Se não sobrou nenhum comando depois de filtrar o help
-                prefixCommandsString = 'Nenhum comando de prefixo disponível (além deste).';
-            }
-        } else {
-            prefixCommandsString = 'Nenhum comando de prefixo carregado.';
-        }
-
-        embed.addFields({
-            name: 'Comandos de Prefixo',
-            value: prefixCommandsString || 'Nenhum comando de prefixo carregado.',
-        });
-
-
-        let slashCommandsString = '';
-        if (client.slashCommands.size > 0) {
-            slashCommandsString = client.slashCommands.map(cmd => {
-                const cmdDescription = cmd.data.description || 'Sem descrição.';
-                return `\`/${cmd.data.name}\`: ${cmdDescription}`;
-            }).join('\n');
-        } else {
-            slashCommandsString = 'Nenhum comando de barra (slash command) carregado.';
-        }
-
-        embed.addFields({
-            name: 'Comandos de Barra',
-            value: slashCommandsString || 'Nenhum comando de barra (slash command) carregado.',
-        });
-
-        embed.setFooter({ text: `Solicitado por ${message.author.tag}`, iconURL: message.author.displayAvatarURL() });
-        embed.setTimestamp();
-
-        await message.reply({ embeds: [embed] });
-    },
-};
+module.exports = HelpCommand;

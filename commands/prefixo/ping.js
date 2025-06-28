@@ -1,8 +1,24 @@
+const BaseCommand = require('../../strutures/BaseCommand');
 
-module.exports = {
-    name: 'ping', // <-- O nome do seu comando. Este é o que você digita no Discord (ex: !ping)
-    description: 'Verifica a latência do bot.', // <-- Uma descrição opcional para seu comando
-    async execute(interaction) { // <-- A função que executa o comando. Use 'interaction' para comandos de barra (slash commands)
+class PingCommand extends BaseCommand {
+    constructor() {
+        super('ping', {
+            category: 'Utilidades',
+            aliases: ['latencia', 'ms'],
+            description: 'Mostra a latência do bot e da API do Discord.'
+        });
+    }
 
-    },
-};
+    async execute(bot, message, args) {
+        // Envia uma mensagem inicial para calcular a latência de ida e volta
+        const msg = await message.reply('Calculando...');
+
+        // Edita a mensagem com os resultados
+        const botLatency = msg.createdTimestamp - message.createdTimestamp;
+        const apiLatency = Math.round(bot.ws.ping);
+
+        await msg.edit(`🏓 **Pong!**\nLatência da Mensagem: \`${botLatency}ms\`\nLatência da API: \`${apiLatency}ms\``);
+    }
+}
+
+module.exports = PingCommand;
