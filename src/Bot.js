@@ -1,6 +1,4 @@
 const { Client, GatewayIntentBits, Collection, Partials} = require('discord.js');
-const path = require('path');
-const { readdirSync } = require('fs');
 const commandLoader = require('../loaders/commandLoader.js');
 const eventLoader = require('../loaders/eventLoader.js');
 

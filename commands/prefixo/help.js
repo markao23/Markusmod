@@ -1,67 +1,72 @@
-const { EmbedBuilder } = require('discord.js');
-const BaseCommand = require('../../strutures/BaseCommand');
+// Em /commands/prefixo/HelpCommand.js
 
-class HelpCommand extends BaseCommand {
-    constructor() {
-        super('help', {
+const { EmbedBuilder } = require('discord.js');
+const Command = require('../../strutures/Command.js'); // Importa a classe base
+
+module.exports = class HelpCommand extends Command {
+    constructor(client) {
+        // Usa super() para passar as opções para a classe pai (Command)
+        super(client, {
+            name: 'help',
+            description: 'Mostra a lista de comandos ou informações sobre um comando específico.',
+            usage: 'help [nome do comando]',
             category: 'Utilidades',
             aliases: ['ajuda', 'comandos'],
-            description: 'Mostra a lista de comandos ou informações sobre um comando específico.',
-            usage: 'help [nome do comando]'
         });
     }
 
-    async execute(bot, message, args) {
-        const prefix = bot.prefix;
-
-        // Se não houver argumentos, mostra a lista geral de comandos
-        if (!args.length) {
-            const embed = new EmbedBuilder()
-                .setColor('#0099ff')
-                .setTitle('📜 Meus Comandos')
-                .setDescription(`Use \`${prefix}help [nome do comando]\` para ver detalhes de um comando específico.`);
-
-            const categories = {};
-            // Agrupa os comandos por categoria
-            bot.commands.forEach(command => {
-                if (!categories[command.category]) {
-                    categories[command.category] = [];
-                }
-                categories[command.category].push(`\`${command.name}\``);
-            });
-
-            // Adiciona um campo para cada categoria no embed
-            for (const categoryName in categories) {
-                embed.addFields({
-                    name: `**${categoryName}**`,
-                    value: categories[categoryName].join(', '),
-                    inline: false
-                });
-            }
-
-            return message.reply({ embeds: [embed] });
-        }
-
-        // Se houver um argumento, mostra os detalhes do comando específico
-        const commandName = args[0].toLowerCase();
-        const command = bot.commands.get(commandName) || bot.commands.get(bot.aliases.get(commandName));
-
-        if (!command) {
-            return message.reply('Esse comando não existe!');
-        }
+    /**
+     * @param {import('discord.js').Message} message
+     * @param {string[]} args
+     */
+    async execute(message, args) {
+        const prefix = 'm!'; // Você pode pegar isso do client futuramente
 
         const embed = new EmbedBuilder()
             .setColor('#0099ff')
-            .setTitle(`🔍 Detalhes do Comando: \`${command.name}\``)
-            .addFields(
-                { name: 'Descrição', value: command.description || 'Nenhuma descrição.' },
-                { name: 'Categoria', value: command.category },
-                { name: 'Como usar', value: `\`${prefix}${command.usage || command.name}\`` },
-                { name: 'Apelidos (Aliases)', value: command.aliases.length ? command.aliases.join(', ') : 'Nenhum.' }
-            );
+            .setTimestamp()
+            .setFooter({ text: `Solicitado por ${message.author.tag}`, iconURL: message.author.displayAvatarURL() });
+
+        if (!args.length) {
+            embed
+                .setTitle('📜 Meus Comandos')
+                .setDescription(`Use \`${prefix}${this.usage}\` para obter detalhes sobre um comando!`);
+
+            const categories = [...new Set(this.client.commands.map(cmd => cmd.category))];
+
+            for (const category of categories) {
+                const commandsInCategory = this.client.commands
+                    .filter(cmd => cmd.category === category)
+                    .map(cmd => `\`${cmd.name}\``)
+                    .join(', ');
+                if (commandsInCategory) {
+                    embed.addFields({ name: `📁 ${category}`, value: commandsInCategory });
+                }
+            }
+        } else {
+            const commandName = args[0].toLowerCase();
+            const command = this.client.commands.get(commandName) || this.client.commands.find(cmd => cmd.aliases.includes(commandName));
+
+            if (!command) {
+                return message.reply({ content: '❌ Comando não encontrado!', ephemeral: true });
+            }
+
+            embed
+                .setTitle(`🔍 Detalhes do Comando: \`${command.name}\``)
+                .addFields(
+                    { name: 'Descrição', value: command.description },
+                    { name: 'Como usar', value: `\`${prefix}${command.usage}\`` },
+                    { name: 'Apelidos (Aliases)', value: command.aliases.length ? command.aliases.join(', ') : 'Nenhum.' }
+                );
+
+            if (command.name === 'clear') {
+                embed.addFields({
+                    name: '⚠️ Limitação Importante',
+                    value: 'Este comando não pode apagar mensagens com mais de **2 semanas (14 dias)** de idade.'
+                });
+            }
+        }
 
         return message.reply({ embeds: [embed] });
     }
-}
-
-module.exports = HelpCommand;
+};

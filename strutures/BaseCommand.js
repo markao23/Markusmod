@@ -4,7 +4,7 @@ module.exports = class BaseCommand {
         this.category = category;
         this.aliases = aliases;
     }
-    execute(bot, message, args) {
+    async execute(bot, message, args) {
         throw new Error(`O comando ${this.name} não possui um método execute()!`);
     }
 }

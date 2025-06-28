@@ -9,15 +9,18 @@ class PingCommand extends BaseCommand {
         });
     }
 
-    async execute(bot, message, args) {
+    async execute(message, args, client) {
         // Envia uma mensagem inicial para calcular a latência de ida e volta
         const msg = await message.reply('Calculando...');
-
+        const websocketLatency = client.ws.ping;
         // Edita a mensagem com os resultados
-        const botLatency = msg.createdTimestamp - message.createdTimestamp;
-        const apiLatency = Math.round(bot.ws.ping);
+        const apiLatency = msg.createdTimestamp - message.createdTimestamp;
+        await msg.edit({
+            content: `🏓 **Pong!**\n` +
+                     `> Latência da API: \`${apiLatency}ms\`\n` +
+                     `> Latência do WebSocket: \`${websocketLatency}ms\``
+        });
 
-        await msg.edit(`🏓 **Pong!**\nLatência da Mensagem: \`${botLatency}ms\`\nLatência da API: \`${apiLatency}ms\``);
     }
 }
 
