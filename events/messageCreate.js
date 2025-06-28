@@ -11,9 +11,9 @@ module.exports = {
 
     /**
      * @param {import('discord.js').Message} message
-     * @param {import('../core/Bot')} bot
+     * @param client
      */
-    async execute(message, bot) {
+    async execute(message, client) {
         if (message.author.bot || !message.guild) {
             return;
         }
@@ -25,14 +25,21 @@ module.exports = {
             return;
         }
 
-        // Etapa 2 do Pipeline: Chama o processador de Comandos
-        const commandResult = await commandProcessor.handle(message, bot);
-        // Se a mensagem foi um comando, o pipeline para aqui.
-        if (commandResult.wasCommand) {
+        const prefix = 'm!'
+        const args = message.content.slice(prefix.length).trim().split(/ +/)
+        const commandName = args.shift().toLowerCase();
+        const command = client.commands.get(commandName)
+             || client.commands.find(cmd => cmd.aliases && cmd.aliases.includes(commandName))
+
+        if (!message.content.startsWith(prefix)) {
             return;
         }
+        if (!command) {
+            return message.reply({ content: 'Esse comando não existe!', ephemeral: true });
+        }
+
         try {
-            await execute(bot, message, args);
+            await execute(client, message, args);
         } catch (error) {
             console.error(`❌ Erro ao executar o comando '${command.name}':`, error);
             await message.reply('😥 Desculpe, ocorreu um erro ao tentar executar este comando.').catch(console.error);
